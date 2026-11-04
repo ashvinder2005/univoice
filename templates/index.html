@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniVoice – Smart Voice Action Assistant</title>
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-waveform-lines"></i>
+          <span class="pulse-ring"></span>
+        </div>
+        <div>
+          <h1 class="brand-title">UniVoice</h1>
+          <p class="brand-subtitle">Smart College Voice Action Assistant</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="dashboard">
+          <i class="fa-solid fa-gauge-high"></i> <span>Console</span>
+        </button>
+        <button class="nav-tab" data-tab="module-tracker">
+          <i class="fa-solid fa-wallet"></i> <span>Expenses & Tasks</span>
+        </button>
+        <button class="nav-tab" data-tab="module-meeting">
+          <i class="fa-solid fa-microphone-lines"></i> <span>Meeting Assistant</span>
+        </button>
+        <button class="nav-tab" data-tab="module-campus">
+          <i class="fa-solid fa-graduation-cap"></i> <span>Campus Hub</span>
+        </button>
+      </nav>
+
+      <!-- System Status & Voice Settings -->
+      <div class="header-controls">
+        <div class="status-pill" id="ai-status-pill" title="AI Backend Status">
+          <span class="status-dot"></span>
+          <span id="ai-status-text">Checking AI...</span>
+        </div>
+        <button id="tts-toggle-btn" class="icon-btn" title="Toggle Assistant Voice Output">
+          <i class="fa-solid fa-volume-high" id="tts-icon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+
+    <!-- ======================================================== -->
+    <!-- CENTRAL VOICE COMMAND CONSOLE (ALWAYS ACCESSIBLE) -->
+    <!-- ======================================================== -->
+    <section class="voice-hero-card">
+      <div class="voice-hero-inner">
+        <!-- Microphone Interaction Center -->
+        <div class="mic-cluster">
+          <div class="mic-halo" id="mic-halo"></div>
+          <button id="main-mic-btn" class="main-mic-btn" title="Click to speak (Web Speech API)">
+            <i class="fa-solid fa-microphone" id="mic-icon"></i>
+          </button>
+          <div class="mic-status-label" id="mic-status-label">Tap microphone or type to speak</div>
+          
+          <!-- Animated Audio Bars (Shown when active) -->
+          <div class="audio-wave-bars" id="audio-wave-bars">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <!-- Live Speech & AI Feedback Box -->
+        <div class="voice-feedback-area">
+          <div class="transcript-box">
+            <div class="transcript-header">
+              <span class="tag tag-speech"><i class="fa-solid fa-comment-dots"></i> Recognized Speech</span>
+              <span id="speech-interim-tag" class="interim-indicator hidden">Live Transcribing...</span>
+            </div>
+            <p id="recognized-speech-text" class="recognized-text">"Press the mic button and speak a command, or select a quick action below..."</p>
+          </div>
+
+          <div class="ai-response-box">
+            <div class="ai-response-header">
+              <span class="tag tag-ai"><i class="fa-solid fa-brain"></i> UniVoice AI Response</span>
+              <span id="ai-engine-tag" class="engine-badge">Ready</span>
+            </div>
+            <p id="ai-response-text" class="ai-text">Welcome to UniVoice! You can add expenses, set task reminders, analyze team meetings, or ask for campus schedules and library books.</p>
+            <div id="ai-action-badge-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text Input Fallback Bar -->
+      <div class="text-fallback-bar">
+        <div class="input-wrapper">
+          <i class="fa-solid fa-keyboard input-icon"></i>
+          <input type="text" id="voice-fallback-input" placeholder="Type a voice command fallback (e.g. 'Spent 15 on lunch', 'When is AI class?')..." autocomplete="off">
+          <button id="send-command-btn" class="send-btn" title="Execute Command">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Action Prompt Pills -->
+      <div class="quick-prompts-bar">
+        <span class="prompts-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Try saying:</span>
+        <button class="prompt-chip" data-command="Spent 14.50 on lunch at cafeteria">"Spent $14.50 on lunch"</button>
+        <button class="prompt-chip" data-command="Remind me to submit AI assignment by Friday 5 PM">"Remind me to submit AI assignment by Friday"</button>
+        <button class="prompt-chip" data-command="What are my total expenses?">"What are my total expenses?"</button>
+        <button class="prompt-chip" data-command="What classes do I have on Monday?">"What classes do I have on Monday?"</button>
+        <button class="prompt-chip" data-command="Is Clean Code available in the library?">"Is Clean Code in the library?"</button>
+        <button class="prompt-chip" data-command="When is the university hackathon?">"When is the hackathon?"</button>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 1: CONSOLE OVERVIEW & RECENT ACTIVITY -->
+    <!-- ======================================================== -->
+    <section id="tab-dashboard" class="tab-pane active">
+      <!-- Quick Metric Summary Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card" id="card-total-spent">
+          <div class="metric-icon bg-purple"><i class="fa-solid fa-wallet"></i></div>
+          <div class="metric-details">
+            <div class="metric-label">Total Tracked Spend</div>
+            <div class="metric-value" id="stat-total-expense">$0.00</div>
+            <div class="metric-sub" id="stat-today-expense">Today: $0.00</div>
+          </div>
+        </div>
+
+        <div class="metric-card" id="card-pending-tasks">
+          <div class="metric-icon bg-blue"><i class="fa-solid fa-list-check"></i></div>
+          <div class="metric-details">
+            <div class="metric-label">Pending Reminders</div>
+            <div class="metric-value" id="stat-pending-tasks">0</div>
+            <div class="metric-sub">Voice-activated tasks</div>
+          </div>
+        </div>
+
+        <div class="metric-card" id="card-meetings-count">
+          <div class="metric-icon bg-green"><i class="fa-solid fa-file-lines"></i></div>
+          <div class="metric-details">
+            <div class="metric-label">Meetings Analyzed</div>
+            <div class="metric-value" id="stat-total-meetings">0</div>
+            <div class="metric-sub">Transcripts & Action Items</div>
+          </div>
+        </div>
+
+        <div class="metric-card" id="card-campus-events">
+          <div class="metric-icon bg-amber"><i class="fa-solid fa-calendar-star"></i></div>
+          <div class="metric-details">
+            <div class="metric-label">Campus Events</div>
+            <div class="metric-value" id="stat-total-events">5</div>
+            <div class="metric-sub">Timetables & Library Active</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two-Column Overview Layout -->
+      <div class="overview-grid">
+        <!-- Live Activity Log -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Live Voice AI Activity Log</h3>
+            <button class="btn-xs btn-outline" id="clear-activity-btn">Clear</button>
+          </div>
+          <div class="panel-body">
+            <div id="activity-log-list" class="activity-feed">
+              <!-- Dynamically populated -->
+              <div class="activity-empty">
+                <i class="fa-solid fa-ghost"></i>
+                <p>No voice actions recorded yet. Speak or type a command to start!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Glance at Recent Tasks & Expenses -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <h3><i class="fa-solid fa-bolt"></i> Upcoming Reminders & Spend</h3>
+            <span class="badge badge-accent">Live SQLite</span>
+          </div>
+          <div class="panel-body">
+            <h4 class="subhead">Pending Reminders</h4>
+            <div id="overview-tasks-list" class="mini-list"></div>
+            
+            <h4 class="subhead mt-4">Recent Expenses</h4>
+            <div id="overview-expenses-list" class="mini-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 2: MODULE 1 - VOICE EXPENSE AND TASK TRACKER -->
+    <!-- ======================================================== -->
+    <section id="tab-module-tracker" class="tab-pane">
+      <div class="module-header-banner">
+        <div class="banner-content">
+          <span class="module-number">MODULE 1</span>
+          <h2>Voice Expense & Task Tracker</h2>
+          <p>Record your campus budget and academic to-dos completely hands-free. All records are validated and saved in SQLite.</p>
+        </div>
+        <div class="banner-actions">
+          <button class="btn btn-outline" id="quick-add-expense-modal-btn">
+            <i class="fa-solid fa-plus"></i> Manual Expense
+          </button>
+          <button class="btn btn-outline" id="quick-add-task-modal-btn">
+            <i class="fa-solid fa-plus"></i> Manual Task
+          </button>
+        </div>
+      </div>
+
+      <div class="tracker-layout">
+        <!-- Left: Expenses Section -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h3><i class="fa-solid fa-receipt"></i> Expenses Breakdown</h3>
+              <p class="panel-sub" id="expense-total-banner">Total: $0.00</p>
+            </div>
+            <div class="category-filter-wrap">
+              <select id="expense-category-filter" class="custom-select">
+                <option value="">All Categories</option>
+                <option value="Food">Food</option>
+                <option value="Travel">Travel</option>
+                <option value="Books">Books</option>
+                <option value="Supplies">Supplies</option>
+                <option value="Tech">Tech</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="table-container">
+              <table class="data-table" id="expenses-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Date</th>
+                    <th class="text-right">Amount</th>
+                    <th class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="expenses-table-body">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Tasks & Reminders Section -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h3><i class="fa-solid fa-list-check"></i> Reminders & Tasks</h3>
+              <p class="panel-sub">Voice-extracted due dates & priority</p>
+            </div>
+            <div class="task-filter-wrap">
+              <select id="task-filter-select" class="custom-select">
+                <option value="pending">Pending Only</option>
+                <option value="all">All Tasks</option>
+              </select>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="tasks-checklist" class="tasks-checklist-container">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 3: MODULE 2 - MEETING ASSISTANT -->
+    <!-- ======================================================== -->
+    <section id="tab-module-meeting" class="tab-pane">
+      <div class="module-header-banner">
+        <div class="banner-content">
+          <span class="module-number">MODULE 2</span>
+          <h2>Meeting Assistant</h2>
+          <p>Record audio or upload notes from team syncs. Gemini transcribes the meeting, extracts action items with deadlines, and generates an executive email draft.</p>
+        </div>
+      </div>
+
+      <div class="meeting-layout">
+        <!-- Input Column: Audio Recording / Upload / Paste -->
+        <div class="panel-card">
+          <div class="panel-header">
+            <h3><i class="fa-solid fa-microphone"></i> Meeting Audio & Notes Input</h3>
+            <span class="badge badge-primary">Multimodal AI</span>
+          </div>
+          <div class="panel-body">
+            <!-- In-Browser Recorder Control -->
+            <div class="record-meeting-box">
+              <div class="recorder-visual">
+                <button id="meeting-record-btn" class="meeting-mic-circle" title="Start Recording Meeting Audio">
+                  <i class="fa-solid fa-microphone-lines" id="meeting-mic-icon"></i>
+                </button>
+                <div class="record-timer" id="record-timer">00:00</div>
+              </div>
+              <p class="record-instruction" id="record-instruction">Click to record live meeting audio from your microphone.</p>
+            </div>
+
+            <div class="divider-text"><span>OR UPLOAD AUDIO FILE</span></div>
+
+            <!-- File Upload Dropzone -->
+            <div class="upload-dropzone" id="upload-dropzone">
+              <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+              <p class="drop-text">Drag & drop meeting audio here, or <span class="highlight">browse</span></p>
+              <p class="drop-sub">Supports .mp3, .wav, .webm, .m4a</p>
+              <input type="file" id="meeting-file-input" accept="audio/*,.mp3,.wav,.webm,.m4a" class="file-hidden">
+            </div>
+            <div id="selected-file-info" class="selected-file-info hidden"></div>
+
+            <div class="divider-text"><span>OR PASTE TRANSCRIPT / NOTES</span></div>
+
+            <!-- Notes Textarea -->
+            <div class="notes-input-wrap">
+              <textarea id="meeting-notes-input" rows="4" class="custom-textarea" placeholder="Paste rough meeting notes, e.g.: 'Alex will deploy Flask backend by Wednesday. Sarah to finish UI by Thursday. David will prepare slides by Friday.'"></textarea>
+            </div>
+
+            <!-- Submit Processing Button -->
+            <button id="process-meeting-btn" class="btn btn-primary btn-block mt-3">
+              <i class="fa-solid fa-sparkles"></i> Process Meeting with AI
+            </button>
+          </div>
+        </div>
+
+        <!-- Output Column: Summary, Action Items & Email Draft -->
+        <div class="panel-card" id="meeting-results-panel">
+          <div class="panel-header">
+            <div>
+              <h3 id="current-meeting-title"><i class="fa-solid fa-clipboard-check"></i> Meeting Insights</h3>
+              <p class="panel-sub" id="meeting-date-subtitle">Processed by Google Gemini 2.5 Flash</p>
+            </div>
+            <div class="actions">
+              <button id="copy-email-btn" class="btn btn-accent btn-sm">
+                <i class="fa-solid fa-copy"></i> Copy Email Draft
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <!-- Meeting Summary Section -->
+            <div class="insight-block">
+              <h4 class="insight-heading"><i class="fa-solid fa-align-left"></i> Executive Summary</h4>
+              <div id="meeting-summary-text" class="insight-content">
+                <p class="placeholder-text">Submit or record meeting audio to generate AI summary and key takeaways.</p>
+              </div>
+            </div>
+
+            <!-- Action Items Table -->
+            <div class="insight-block mt-4">
+              <h4 class="insight-heading"><i class="fa-solid fa-tasks"></i> Extracted Action Items & Deadlines</h4>
+              <div id="meeting-actions-container" class="action-items-list">
+                <p class="placeholder-text">Action items, assignees, and deadlines will appear here.</p>
+              </div>
+            </div>
+
+            <!-- Email Draft Section -->
+            <div class="insight-block mt-4">
+              <div class="draft-header">
+                <h4 class="insight-heading"><i class="fa-solid fa-envelope-open-text"></i> Follow-up Email Draft</h4>
+                <button id="copy-email-sub-btn" class="copy-link"><i class="fa-solid fa-clipboard"></i> Copy Draft</button>
+              </div>
+              <div class="email-preview-card">
+                <pre id="meeting-email-draft" class="email-draft-text">Email draft will be automatically composed here once meeting notes are analyzed.</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Past Meetings History -->
+      <div class="panel-card mt-4">
+        <div class="panel-header">
+          <h3><i class="fa-solid fa-history"></i> Saved Meetings History</h3>
+          <span class="badge badge-neutral" id="meetings-history-count">0 Saved</span>
+        </div>
+        <div class="panel-body">
+          <div id="past-meetings-list" class="meetings-grid">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TAB 4: MODULE 3 - CAMPUS ASSISTANT -->
+    <!-- ======================================================== -->
+    <section id="tab-module-campus" class="tab-pane">
+      <div class="module-header-banner">
+        <div class="banner-content">
+          <span class="module-number">MODULE 3</span>
+          <h2>Campus Assistant</h2>
+          <p>Strictly grounded query engine for student timetables, campus events, and library catalogs. Answers directly from authentic college records with zero hallucinations.</p>
+        </div>
+      </div>
+
+      <!-- Sub Tabs for Campus Hub -->
+      <div class="campus-subnav">
+        <button class="subtab-btn active" data-subtab="timetables">
+          <i class="fa-solid fa-calendar-days"></i> Class Timetables
+        </button>
+        <button class="subtab-btn" data-subtab="events">
+          <i class="fa-solid fa-bullhorn"></i> Campus Events & Fests
+        </button>
+        <button class="subtab-btn" data-subtab="library">
+          <i class="fa-solid fa-book-bookmark"></i> Library Catalog
+        </button>
+      </div>
+
+      <!-- Subtab 1: Timetables -->
+      <div id="subtab-timetables" class="subtab-content active">
+        <div class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h3><i class="fa-solid fa-calendar-week"></i> Weekly Class Schedule</h3>
+              <p class="panel-sub">Ask via voice: "What classes on Monday?" or "When is Operating Systems?"</p>
+            </div>
+            <div class="day-filters" id="timetable-day-filters">
+              <button class="filter-pill active" data-day="">All Days</button>
+              <button class="filter-pill" data-day="Monday">Mon</button>
+              <button class="filter-pill" data-day="Tuesday">Tue</button>
+              <button class="filter-pill" data-day="Wednesday">Wed</button>
+              <button class="filter-pill" data-day="Thursday">Thu</button>
+              <button class="filter-pill" data-day="Friday">Fri</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="table-container">
+              <table class="data-table" id="timetable-table">
+                <thead>
+                  <tr>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Course</th>
+                    <th>Professor</th>
+                    <th>Location / Hall</th>
+                  </tr>
+                </thead>
+                <tbody id="timetable-table-body">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtab 2: Campus Events -->
+      <div id="subtab-events" class="subtab-content">
+        <div class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h3><i class="fa-solid fa-calendar-check"></i> Official University Events</h3>
+              <p class="panel-sub">Verified dates and locations for hackathons, workshops, and fests</p>
+            </div>
+            <div class="search-box-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="events-search-input" placeholder="Search events..." class="custom-input">
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="events-card-grid" class="events-grid">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtab 3: Library Catalog -->
+      <div id="subtab-library" class="subtab-content">
+        <div class="panel-card">
+          <div class="panel-header">
+            <div>
+              <h3><i class="fa-solid fa-books"></i> Central Library Catalog</h3>
+              <p class="panel-sub">Exact shelf locations & real-time book availability</p>
+            </div>
+            <div class="search-box-wrap">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="library-search-input" placeholder="Search book title, author, or subject..." class="custom-input">
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="table-container">
+              <table class="data-table" id="library-table">
+                <thead>
+                  <tr>
+                    <th>Book Title</th>
+                    <th>Author</th>
+                    <th>Category</th>
+                    <th>Shelf / Rack</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="library-table-body">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Strict Grounding Demo Callout -->
+      <div class="grounding-note-card">
+        <div class="grounding-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <div class="grounding-text">
+          <h4>Strict Grounding Verification</h4>
+          <p>Unlike standard chatbots, UniVoice never hallucinates campus information. Try asking for a non-existent course like <em>"When is Quantum Astrology lecture?"</em> or a book like <em>"Find Flying Unicorns"</em> — UniVoice will strictly state that the item was not found in the official directory.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: MANUAL ADD EXPENSE -->
+  <!-- ======================================================== -->
+  <div id="expense-modal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-wallet"></i> Add Expense</h3>
+        <button class="modal-close-btn" data-close="expense-modal">&times;</button>
+      </div>
+      <form id="manual-expense-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="exp-desc">Description</label>
+            <input type="text" id="exp-desc" required placeholder="e.g. Lunch with project group" class="custom-input">
+          </div>
+          <div class="form-row">
+            <div class="form-group col">
+              <label for="exp-amount">Amount ($)</label>
+              <input type="number" id="exp-amount" required step="0.01" min="0.01" placeholder="0.00" class="custom-input">
+            </div>
+            <div class="form-group col">
+              <label for="exp-cat">Category</label>
+              <select id="exp-cat" class="custom-select">
+                <option value="Food">Food</option>
+                <option value="Travel">Travel</option>
+                <option value="Books">Books</option>
+                <option value="Supplies">Supplies</option>
+                <option value="Tech">Tech</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close="expense-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: MANUAL ADD TASK -->
+  <!-- ======================================================== -->
+  <div id="task-modal" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-list-check"></i> Add Task / Reminder</h3>
+        <button class="modal-close-btn" data-close="task-modal">&times;</button>
+      </div>
+      <form id="manual-task-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="task-desc">Task Description</label>
+            <input type="text" id="task-desc" required placeholder="e.g. Submit CS301 lab report" class="custom-input">
+          </div>
+          <div class="form-row">
+            <div class="form-group col">
+              <label for="task-due">Due Date / Time</label>
+              <input type="text" id="task-due" placeholder="e.g. Friday 5 PM, Tomorrow" class="custom-input">
+            </div>
+            <div class="form-group col">
+              <label for="task-priority">Priority</label>
+              <select id="task-priority" class="custom-select">
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close="task-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Reminder</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script src="/static/js/speech.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
+
